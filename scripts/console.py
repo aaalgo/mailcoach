@@ -19,8 +19,9 @@ def main ():
     args = parser.parse_args()
 
     if args.memory is None:
-        if os.path.exists("memory.mbox"):
-            args.memory = "memory.mbox"
+        MEMORY_PATH = os.path.join(os.path.dirname(__file__), "memory.mbox")
+        if os.path.exists(MEMORY_PATH):
+            args.memory = MEMORY_PATH
 
     engine = Engine()
     engine.register(User("user@localdomain"))
