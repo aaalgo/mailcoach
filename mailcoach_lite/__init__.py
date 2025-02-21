@@ -15,6 +15,8 @@ MODELS = [
     'anthropic/claude-3-5-sonnet'
 ]
 
+DEFAULT_MODEL = "openai/gpt-4o-mini"
+
 LUNARY_PUBLIC_KEY = os.getenv("LUNARY_PUBLIC_KEY")
 if not LUNARY_PUBLIC_KEY is None:
     litellm.success_callback = ["lunary"]
@@ -42,13 +44,15 @@ def print_message (msg):
 
 def format_message_for_AI (message, serial_number):
     lines = []
-    HEADERS = ["From", "To", "Subject", "Content-Type"]
+    HEADERS = ["From", "To", "Subject", "Content-Type", "X-Pop-Shell"]
     for header in HEADERS:
-        value = message.get(header, "")
+        if not header in message:
+            continue
+        value = message[header]
         if header == "Content-Type":
             value = value.split(";")[0]
         lines.append(f"{header}: {value}")
-    lines.append(f"X-Serial: {serial_number}")
+    #lines.append(f"X-Serial: {serial_number}")
     lines.append("")
     try:
         content = message.get_content()
@@ -64,7 +68,8 @@ ACTION_CC = 2
 ACTION_SAVE_ONLY = 3
 
 class Entity(ABC):
-    def __init__ (self):
+    def __init__ (self, address):
+        self.address = address
         pass
 
     @abstractmethod
@@ -72,8 +77,8 @@ class Entity(ABC):
         assert False, "Not implemented"
 
 class Robot(Entity):
-    def __init__ (self):
-        super().__init__()
+    def __init__ (self, address):
+        super().__init__(address)
 
 def make_primer (agent_address):
     primer = []
@@ -83,7 +88,8 @@ def make_primer (agent_address):
     msg["Subject"] = "Welcome to the system!"
     msg.set_content("""
 You are an agent who communicates with the outside world by emails.
-Make sure you generate the emails headers correctly.""".strip())
+Make sure you generate the emails headers correctly.
+Generate only one email each time.""".strip())
     primer.append(msg)
     msg = EmailMessage()
     msg["From"] = agent_address
@@ -97,16 +103,27 @@ I'm ready to process messages.
 
 class Agent(Entity):
     def __init__ (self, address):
-        super().__init__()
-        self.address = address
+        super().__init__(address)
         self.context = make_primer(address)
-        self.model = "openai/gpt-4o-mini"
+        self.model = DEFAULT_MODEL
 
     def add (self, msg):
         # TODO: handle special messages
-        self.context.append(msg)
         if 'X-Hint-Model' in msg:
             self.model = msg['X-Hint-Model']
+        if 'X-Rollback' in msg:
+            rollback = int(msg['X-Rollback'])
+            self.context = self.context[:(rollback+1)]
+        if 'X-Pop-Shell' in msg:
+            while len(self.context) > 0:
+                last = self.context[-1]
+                From = last['From'].strip()
+                To = last['To'].strip()
+                if 'shell@localdomain' in [From, To]:
+                    self.context.pop()
+                else:
+                    break
+        self.context.append(msg)
     
     def format_context (self):
         context = []
@@ -187,9 +204,9 @@ class Engine:
                 f.write("\n")
         pass
 
-    def register (self, address, robot):
-        assert not address in self.entities
-        self.entities[address] = robot
+    def register (self, entity):
+        assert not entity.address in self.entities
+        self.entities[entity.address] = entity
 
     def process (self, msg, mode):
         if mode == ENQUEUE_TASK:

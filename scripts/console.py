@@ -2,10 +2,11 @@
 import sys
 import argparse
 from mailcoach_lite import *
+from mailcoach_lite.robots import *
 
 class User (Robot):
-    def __init__ (self):
-        super().__init__()
+    def __init__ (self, address):
+        super().__init__(address)
 
     def process (self, engine, msg, action):
         pass
@@ -17,8 +18,13 @@ def main ():
     parser.add_argument('-c', '--chat', action='store_true', help='Chat mode')
     args = parser.parse_args()
 
+    if args.memory is None:
+        if os.path.exists("memory.mbox"):
+            args.memory = "memory.mbox"
+
     engine = Engine()
-    engine.register("user@localdomain", User())
+    engine.register(User("user@localdomain"))
+    engine.register(Shell("shell@localdomain"))
     if args.memory:
         engine.load_mbox(args.memory, ENQUEUE_MEMORY)
     if args.queue:
@@ -27,7 +33,7 @@ def main ():
 
     if args.chat:
         to_address = "a100@agents.localdomain"
-        model = 'openai/gpt-4o-mini'
+        model = DEFAULT_MODEL
         engine.chat(to_address, model)
 
 

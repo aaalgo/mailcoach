@@ -1,0 +1,138 @@
+
+From --------------------------------
+From: user@localdomain
+To: a100@agents.localdomain
+X-Hint-Model: openai/gpt-4o-mini
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+MIME-Version: 1.0
+
+An Linux shell (Ubuntu) is available to you.  You can invoke the shell 
+by sending an email to shell@localdomain .  The subject of the email 
+should be the command you intend to run, and the body of the email will 
+be supplied as the stdin.  You'll receive a reply with the outcome. 
+
+Now try to generate a fortune for me using the shell.
+
+From --------------------------------
+From: a100@agents.localdomain  
+To: shell@localdomain  
+Subject: fortune  
+Content-Type: text/plain  
+X-Serial: 3  
+
+Please generate a fortune for me.
+
+From --------------------------------
+From: shell@localdomain
+To: a100@agents.localdomain
+Subject: Exit Code: 0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+MIME-Version: 1.0
+
+--- stdout ---
+Exercise caution in your daily affairs.
+
+From --------------------------------
+From: a100@agents.localdomain
+To: user@localdomain
+Subject: Your Fortune
+Content-Type: text/plain
+X-Serial: 5
+
+Here's your fortune:
+
+Exercise caution in your daily affairs.
+
+From --------------------------------
+From: user@localdomain
+To: a100@agents.localdomain
+X-Hint-Model: openai/gpt-4o-mini
+Content-Type: text/plain
+
+Great; now try to write a short poem on what we just did. Save it to poem.txt
+using the cat command (cat > poem.txt).  Remember the email body should be
+purely the stdin with nothing else.
+
+From --------------------------------
+From: a100@agents.localdomain
+To: shell@localdomain
+Subject: cat > poem.txt  
+Content-Type: text/plain  
+X-Serial: 11
+
+In the realm of bytes and codes,  
+We asked for fortune, light and bright,  
+A college joke that brought delight.  
+With shell commands that take their flight,  
+A poem saved, in text, just right.  
+
+From --------------------------------
+From: shell@localdomain
+To: a100@agents.localdomain
+Subject: Exit Code: 0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+MIME-Version: 1.0
+
+
+
+From --------------------------------
+From: a100@agents.localdomain
+To: user@localdomain
+Subject: Your Poem is Saved Correctly  
+Content-Type: text/plain  
+X-Serial: 13
+
+The poem has been successfully saved to poem.txt.
+
+From --------------------------------
+From: user@localdomain
+To: a100@agents.localdomain
+X-Hint-Model: openai/gpt-4o-mini
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: quoted-printable
+MIME-Version: 1.0
+
+The messages will keep accumulating in your memory costing time and money. So=
+ you want to remove the memory you no longer need. After a shell session, if =
+you feel the content won't be needed in the future, you can piggyback a heade=
+r X-Pop-Shell to your next normal message, e.g. to me, without a value. Upon =
+seeing this the system will remove the latest shell session from your memory.=
+  Now generate a poem2.txt and try X-Pop-Shell when you report back to me.
+
+From --------------------------------
+From: a100@agents.localdomain
+To: shell@localdomain
+Subject: cat > poem2.txt  
+Content-Type: text/plain  
+X-Serial: 11
+
+In binary whispers, secrets flow,  
+Through circuits where we ebb and glow.  
+Words entwined in digital art,  
+A canvas painted, a piece of heart.  
+Saved in text, like dreams we weave,  
+In this realm, we dare to believe.  
+
+From --------------------------------
+From: shell@localdomain
+To: a100@agents.localdomain
+Subject: Exit Code: 0
+Content-Type: text/plain; charset="utf-8"
+Content-Transfer-Encoding: 7bit
+MIME-Version: 1.0
+
+
+
+From --------------------------------
+From: a100@agents.localdomain
+To: user@localdomain
+Subject: Your Poem2 is Saved  
+Content-Type: text/plain  
+X-Serial: 13
+X-Pop-Shell: 
+
+The poem2 has been successfully saved to poem2.txt. As requested, I am removing the latest shell session from memory.
+
