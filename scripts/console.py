@@ -19,13 +19,15 @@ def main ():
     args = parser.parse_args()
 
     if args.memory is None:
-        MEMORY_PATH = os.path.join(os.path.dirname(__file__), "memory.mbox")
+        ROOT = os.path.dirname(os.path.abspath(os.path.realpath(__file__)))
+        MEMORY_PATH = os.path.join(ROOT, "memory.mbox")
         if os.path.exists(MEMORY_PATH):
             args.memory = MEMORY_PATH
 
     engine = Engine()
     engine.register(User("user@localdomain"))
     engine.register(Shell("shell@localdomain"))
+    engine.register(Editor("editor@localdomain"))
     if args.memory:
         engine.load_mbox(args.memory, ENQUEUE_MEMORY)
     if args.queue:

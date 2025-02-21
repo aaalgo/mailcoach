@@ -250,26 +250,23 @@ class Engine:
             self.process(msg, mode)
 
     def chat (self, to_address, model):
+        subject = ''
         while True:
             # get user input; \ continues to the next line
             user_input = input("ready> ")
-            while user_input.endswith("\\"):
-                user_input = user_input[:-1] + '\n' + input("")
-
-            user_input = user_input.strip()
-            while user_input.startswith("/"):
+            if user_input.startswith("/"):
                 fs = user_input.split(" ", 1)
                 command = fs[0]
-                user_input = ''
-                if len(fs) > 1: 
-                    user_input = fs[1].strip()
-                if command.startswith("/to:"):
-                    to_address = command[4:].strip()
-                    print("to_address:", to_address)
-                elif command.startswith("/model:"):
-                    model = command[7:].strip()
+                # its a command
+                if command == "/t":
+                    to_address = fs[1].strip()
+                    logging.info(f"to_address: {to_address}")
+                elif command == "/s":
+                    subject = fs[1].strip() if len(fs) > 1 else ''
+                    logging.info(f"subject: {subject}")
+                elif command == "/m":
+                    model = fs[1].strip() if len(fs) > 1 else None
                     if not model in MODELS:
-                        print("\nAvailable models:")
                         for i, m in enumerate(MODELS):
                             print(f"{i+1}: {m}")
                         while True:
@@ -281,7 +278,11 @@ class Engine:
                                 print("Invalid selection, please try again")
                             except ValueError:
                                 print("Please enter a valid number")
-                    print("model:", model)
+                    logging.info(f"model: {model}")
+                continue
+            while user_input.endswith("\\"):
+                user_input = user_input[:-1] + '\n' + input("")
+            user_input = user_input.strip()
             if len(user_input) == 0:
                 continue
             if to_address is None:
@@ -290,6 +291,8 @@ class Engine:
             message = EmailMessage()
             message["From"] = "user@localdomain"
             message["To"] = to_address
+            message["Subject"] = subject
+            subject = ''
             if not model is None:
                 message["X-Hint-Model"] = model
             message.set_content(user_input)
