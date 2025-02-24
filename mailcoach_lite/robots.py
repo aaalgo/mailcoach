@@ -3,7 +3,7 @@ import logging
 import subprocess as sp
 from . import EmailMessage, Robot, ACTION_TO
 
-def add_lines (body, filename, content, top=8, bottom=8, min_skip = 4):
+def add_lines (body, filename, content, top=50, bottom=50, min_skip = 10):
     content = content.strip()
     if len(content) == 0:
         return

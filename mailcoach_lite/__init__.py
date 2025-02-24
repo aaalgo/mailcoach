@@ -150,8 +150,8 @@ class Agent(Entity):
             logging.error(f"Failed to parse response: {e}")
             logging.error(content)
             raise e
-        msg['M-Tokens-Input'] = resp.usage.prompt_tokens
-        msg['M-Tokens-Output'] = resp.usage.completion_tokens
+        msg['M-Tokens-Input'] = str(resp.usage.prompt_tokens)
+        msg['M-Tokens-Output'] = str(resp.usage.completion_tokens)
         return [msg]
 
     def process (self, engine, msg, action):

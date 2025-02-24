@@ -35,7 +35,7 @@ def main ():
     engine.run()
 
     if args.chat:
-        to_address = "a100@agents.localdomain"
+        to_address = "swe1@agents.localdomain"
         model = DEFAULT_MODEL
         engine.chat(to_address, model)
 
