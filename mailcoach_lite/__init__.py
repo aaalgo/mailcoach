@@ -9,12 +9,19 @@ from email.message import EmailMessage
 import mailbox
 import litellm
 
-MODELS = [
-    'openai/gpt-4o-mini',
-    'openai/gpt-4o',
-    'anthropic/claude-3-5-haiku',
-    'anthropic/claude-3-5-sonnet'
-]
+MODEL_PRICES = {
+    #   pricing           input, cached_write, cache_read, output
+    'openai/gpt-4o-mini': [0.15, 0.00, 0.075, 0.6],
+    'openai/gpt-4o':      [2.50, 0.00, 1.250, 10.0],
+    'anthropic/claude-3-5-haiku':   [0.80, 1.00, 0.080, 4.00],
+    'anthropic/claude-3-5-sonnet':  [3.00, 3.75, 0.300, 15.0],
+}
+
+MODELS = list(MODEL_PRICES.keys())
+
+INPUT_PRICE_INDEX = 0
+OUTPUT_PRICE_INDEX = 3
+PRICE_UNIT = 1000000
 
 DEFAULT_MODEL = "openai/gpt-4o"
 
@@ -28,12 +35,30 @@ if sys.stdout.isatty():
     COLOR_HEADER_VALUE = "\033[92m"  # Green
     COLOR_BODY = "\033[93m"  # Yellow
     COLOR_RESET = "\033[0m"  # Reset color
+    TTY_COLUMNS = os.get_terminal_size().columns
 else:
     COLOR_SEP = ""
     COLOR_HEADER_NAME = ""
     COLOR_HEADER_VALUE = ""
     COLOR_BODY = ""
     COLOR_RESET = ""
+    TTY_COLUMNS = None
+
+def display_list (todo):
+    if TTY_COLUMNS is None:
+        for item in todo:
+            print(item)
+    else:
+        max_width = max(len(item) for item in todo) + 2  # Adding 2 for padding
+        num_columns = TTY_COLUMNS // max_width
+        num_rows = (len(todo) + num_columns - 1) // num_columns
+
+        for row in range(num_rows):
+            for col in range(num_columns):
+                index = row + col * num_rows
+                if index < len(todo):
+                    print(f"{todo[index]:<{max_width}}", end='')
+            print()
 
 def print_message (msg):
     print(f"{COLOR_SEP}From {'-' * 32}")
@@ -107,6 +132,7 @@ class Agent(Entity):
         super().__init__(address)
         self.context = make_primer(address)
         self.model = DEFAULT_MODEL
+        self.total_cost = 0
 
     def add (self, msg):
         # TODO: handle special messages
@@ -150,8 +176,16 @@ class Agent(Entity):
             logging.error(f"Failed to parse response: {e}")
             logging.error(content)
             raise e
+        msg['M-Model'] = self.model
         msg['M-Tokens-Input'] = str(resp.usage.prompt_tokens)
         msg['M-Tokens-Output'] = str(resp.usage.completion_tokens)
+        prices = MODEL_PRICES[self.model]
+        cost = 0
+        cost += prices[INPUT_PRICE_INDEX] * resp.usage.prompt_tokens / PRICE_UNIT
+        cost += prices[OUTPUT_PRICE_INDEX] * resp.usage.completion_tokens / PRICE_UNIT
+        msg['M-Cost'] = f"{cost:.8f}"
+        self.total_cost += cost
+        logging.info(f"Cost + {cost:.8f} => {self.total_cost:.8f}")
         return [msg]
 
     def process (self, engine, msg, action):
@@ -252,41 +286,70 @@ class Engine:
             self.offset += 1
             self.process(msg, mode)
 
+
+    def prompt_for_action (self):
+        # Print all models, numbered by 1, 2, ...
+        todo = []
+        for i, model in enumerate(MODELS):
+            todo.append(f"{i}: {model}")
+        display_list(todo)
+        print()
+
+        # Print all entries in self.entities.keys(), numbered by a, b, ...
+        todo = []
+        for i, address in enumerate(self.entities.keys(), ord('a')):
+            todo.append(f"{chr(i)}: {address}")
+        display_list(todo)
+        print()
+        print(": [subject]")
+
+        # Ask the user to choose an item with input
+        choice = input("? ").strip()
+
+        # If the user inputs a number, return a tuple ('model', chosen model)
+        if choice.isdigit():
+            index = int(choice)
+            if 0 <= index < len(MODELS):
+                return ('model', MODELS[index])
+            else:
+                print("Invalid model number.")
+                return None
+        # If the user inputs a letter, return ('to', chosen address)
+        elif len(choice) == 1 and 'a' <= choice <= chr(ord('a') + len(self.entities) - 1):
+            index = ord(choice) - ord('a')
+            address = list(self.entities.keys())[index]
+            return ('to', address)
+        elif choice.startswith(":"):
+            subject = choice[1:].strip()
+            return ('subject', subject)
+        else:
+            print("Invalid choice.")
+            return None
+
     def chat (self, to_address, model):
         subject = ''
         while True:
             # get user input; \ continues to the next line
             user_input = input("ready> ")
-            if user_input.startswith("/"):
-                fs = user_input.split(" ", 1)
-                command = fs[0]
-                # its a command
-                if command == "/t":
-                    to_address = fs[1].strip()
-                    logging.info(f"to_address: {to_address}")
-                elif command == "/s":
-                    subject = fs[1].strip() if len(fs) > 1 else ''
-                    logging.info(f"subject: {subject}")
-                elif command == "/m":
-                    model = fs[1].strip() if len(fs) > 1 else None
-                    if not model in MODELS:
-                        for i, m in enumerate(MODELS):
-                            print(f"{i+1}: {m}")
-                        while True:
-                            try:
-                                choice = int(input("\nSelect model number: "))
-                                if 1 <= choice <= len(MODELS):
-                                    model = MODELS[choice-1]
-                                    break
-                                print("Invalid selection, please try again")
-                            except ValueError:
-                                print("Please enter a valid number")
-                    logging.info(f"model: {model}")
-                continue
             while user_input.endswith("\\"):
                 user_input = user_input[:-1] + '\n' + input("")
             user_input = user_input.strip()
             if len(user_input) == 0:
+                resp = self.prompt_for_action()
+                if resp is None:
+                    continue
+                action, param = resp
+                if action == 'model':
+                    self.model = model
+                    logging.info(f"Model set to {model}")
+                elif action == 'to':
+                    to_address = param
+                    logging.info(f"to_address: {to_address}")
+                elif action == 'subject':
+                    subject = param
+                    logging.info(f"subject: {subject}")
+                else:
+                    logging.error(f"Invalid action: {action} {param}")
                 continue
             if to_address is None:
                 print("No to_address specified")
