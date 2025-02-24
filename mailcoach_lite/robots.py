@@ -65,12 +65,26 @@ class Editor (Robot):
             to_append.append((leading + str(i+1), self.lines[i].rstrip()))
             leading_width = max(leading_width, len(to_append[-1][0]))
         for leading, line in to_append:
-            self.stdout.append(f'{leading:>{leading_width}}  {line}')
+            self.stdout.append(f'{leading:>{leading_width}}|{line}')
 
         remain = len(self.lines) - end
         if remain > 0 and suffix:
             self.stdout.append('')
             self.stdout.append(f'{len(self.lines) - end} more lines below.')
+
+    def print_window_1 (self, line = None, window=10, suffix=True, star=None):
+        if line is None:
+            line = self.cursor
+        l = line - 1
+        begin = max(0, l)
+        end = min(len(self.lines), l + window)
+        to_append = []
+        leading_width = 0
+        self.stdout.append(f'--- begin lines {begin+1} - {end} ---')
+        for i in range(begin, end):
+            self.stdout.append(self.lines[i].rstrip())
+        self.stdout.append(f'--- end lines {begin+1} - {end} ---')
+        self.stdout.append('')
 
     def open (self, msg, path):
         with open(path, "r") as f:
@@ -83,6 +97,12 @@ class Editor (Robot):
         self.cursor = line
         self.print_window()
 
+    def scroll_up (self, msg):
+        pass
+
+    def scroll_down (self, msg):
+        pass
+
     def replace (self, msg, range):
         begin, end = range.split('-')
         begin = int(begin)-1
@@ -93,6 +113,8 @@ class Editor (Robot):
         with open(self.path, "w") as f:
             f.writelines(top)
             f.write(body)
+            if not body.endswith('\n'):
+                f.write('\n')
             f.writelines(bottom)
         with open(self.path, "r") as f:
             self.lines = f.readlines()
@@ -120,7 +142,7 @@ class Editor (Robot):
         command = msg.get("Subject", "").strip()
         self.stdout = []
         self.status = 'ok'
-        fs = [f.strip() for f in command.split(' ') if f.strip()]
+        fs = [f.strip() for f in command.split(' ', 1) if f.strip()]
         if len(fs) == 0:
             self.status = 'bad command'
         else:

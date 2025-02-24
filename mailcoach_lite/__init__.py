@@ -1,6 +1,7 @@
 import os
 import sys
 from abc import ABC, abstractmethod
+import pickle
 import logging
 import datetime
 from email import policy, message_from_bytes, message_from_string
@@ -15,7 +16,7 @@ MODELS = [
     'anthropic/claude-3-5-sonnet'
 ]
 
-DEFAULT_MODEL = "openai/gpt-4o-mini"
+DEFAULT_MODEL = "openai/gpt-4o"
 
 LUNARY_PUBLIC_KEY = os.getenv("LUNARY_PUBLIC_KEY")
 if not LUNARY_PUBLIC_KEY is None:
@@ -142,13 +143,15 @@ class Agent(Entity):
     def inference (self):
         context = self.format_context()
         resp = litellm.completion(model=self.model, messages=context)
-        content = resp["choices"][0]["message"]["content"]
+        content = resp.choices[0].message.content
         try:
             msg =  message_from_string(content, policy=policy.default.clone(utf8=True))
         except Exception as e:
             logging.error(f"Failed to parse response: {e}")
             logging.error(content)
             raise e
+        msg['M-Tokens-Input'] = resp.usage.prompt_tokens
+        msg['M-Tokens-Output'] = resp.usage.completion_tokens
         return [msg]
 
     def process (self, engine, msg, action):
