@@ -203,11 +203,12 @@ ENQUEUE_MEMORY = 0
 ENQUEUE_TASK = 1
 
 class Engine:
-    def __init__ (self):
+    def __init__ (self, trace_path = None):
         self.queue = []
         self.offset = 0
         self.entities = {}
-        trace_path = f"./trace.{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}"
+        if trace_path is None:
+            trace_path = f"./trace.{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}"
         self.trace = open(trace_path, "w")
         self.allow_new_agents = False
 
