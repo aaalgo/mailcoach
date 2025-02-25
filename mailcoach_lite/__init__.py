@@ -186,15 +186,17 @@ class Agent(Entity):
         msg['M-Cost'] = f"{cost:.8f}"
         self.total_cost += cost
         logging.info(f"Cost + {cost:.8f} => {self.total_cost:.8f}")
-        return [msg]
+        return [msg], cost
 
     def process (self, engine, msg, action):
         self.add(msg)
         if action != ACTION_TO:
             # TODO: use a cheap model to test whether we want to reply
             return
-        for msg in self.inference():
+        msgs, cost = self.inference()
+        for msg in msgs:
             engine.enqueue(msg)
+        return cost
 
 
 ENQUEUE_MEMORY = 0
@@ -207,6 +209,7 @@ class Engine:
         self.entities = {}
         trace_path = f"./trace.{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}"
         self.trace = open(trace_path, "w")
+        self.allow_new_agents = False
 
     def enqueue (self, msg, mode=ENQUEUE_TASK):
         self.trace.write('\nFrom ' + '-' * 32 + '\n')
@@ -246,6 +249,7 @@ class Engine:
         self.entities[entity.address] = entity
 
     def process (self, msg, mode):
+        total_cost = 0
         if mode == ENQUEUE_TASK:
             print_message(msg)
         todo = []
@@ -265,9 +269,9 @@ class Engine:
             del msg["Bcc"]
             assert isinstance(msg, EmailMessage)
         for address, action in todo:
-            is_agent = address.endswith("@agents.localdomain")
+            is_agent = True #address.endswith("@agents.localdomain")
             if not address in self.entities:
-                if is_agent:
+                if is_agent and self.allow_new_agents:
                     agent = Agent(address)
                     self.entities[address] = agent
                 else:
@@ -278,14 +282,24 @@ class Engine:
                 action = ACTION_SAVE_ONLY
                 if not isinstance(entity, Agent):
                     continue
-            entity.process(self, msg, action)
+            cost = entity.process(self, msg, action)
+            if not cost is None:
+                total_cost += cost
+        return total_cost
 
-    def run (self):
+    def run (self, budget = None, stop_condition = None):
+        cost = 0
         while self.offset < len(self.queue):
+            if budget is not None and cost > budget:
+                logging.info(f"Budget limit reached, stopping at ${cost:.8f}.")
+                break
+            if stop_condition is not None and stop_condition():
+                logging.info(f"Stop condition triggered.")
+                break
             mode, msg = self.queue[self.offset]
             self.offset += 1
-            self.process(msg, mode)
-
+            cost += self.process(msg, mode)
+        logging.info(f"Total cost: ${cost:.8f}")
 
     def prompt_for_action (self):
         # Print all models, numbered by 1, 2, ...
@@ -326,7 +340,7 @@ class Engine:
             print("Invalid choice.")
             return None
 
-    def chat (self, to_address, model):
+    def chat (self, to_address, model, user_address = "user@localdomain"):
         subject = ''
         while True:
             # get user input; \ continues to the next line
@@ -355,7 +369,7 @@ class Engine:
                 print("No to_address specified")
                 continue
             message = EmailMessage()
-            message["From"] = "user@localdomain"
+            message["From"] = user_address
             message["To"] = to_address
             message["Subject"] = subject
             subject = ''
