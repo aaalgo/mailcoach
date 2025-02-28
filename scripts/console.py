@@ -16,6 +16,7 @@ def main ():
     parser.add_argument('-m', '--memory', default=None, help='Path to the memory file')
     parser.add_argument('-q', '--queue', default=None, help='Path to the queue file')
     parser.add_argument('-c', '--chat', action='store_true', help='Chat mode')
+    parser.add_argument('-u', '--user_address', default="user@localdomain", help='User address')
     args = parser.parse_args()
 
     if args.memory is None:
@@ -24,8 +25,8 @@ def main ():
         if os.path.exists(MEMORY_PATH):
             args.memory = MEMORY_PATH
 
-    engine = Engine()
-    engine.register(User("user@localdomain"))
+    engine = Engine(allow_new_agents = True)
+    engine.register(User(args.user_address))
     engine.register(Shell("shell@localdomain"))
     engine.register(Editor("editor@localdomain"))
     if args.memory:

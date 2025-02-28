@@ -11,10 +11,12 @@ import litellm
 
 MODEL_PRICES = {
     #   pricing           input, cached_write, cache_read, output
-    'openai/gpt-4o-mini': [0.15, 0.00, 0.075, 0.6],
-    'openai/gpt-4o':      [2.50, 0.00, 1.250, 10.0],
-    'anthropic/claude-3-5-haiku':   [0.80, 1.00, 0.080, 4.00],
-    'anthropic/claude-3-5-sonnet':  [3.00, 3.75, 0.300, 15.0],
+    # 'openai/gpt-4.5-preview':       [75, 0.00, 0.075, 150],   This is rip-off
+    'openai/gpt-4o-mini':           [0.15, 0.00, 0.075, 0.6],
+    'openai/gpt-4o':                [2.50, 0.00, 1.250, 10.0],
+    'anthropic/claude-3-5-haiku-latest':   [0.80, 1.00, 0.080, 4.00],
+    'anthropic/claude-3-5-sonnet-latest':  [3.00, 3.75, 0.300, 15.0],
+    'anthropic/claude-3-7-sonnet-20250219': [3.00, 3.75, 0.3, 15.0]
 }
 
 MODELS = list(MODEL_PRICES.keys())
@@ -27,7 +29,8 @@ DEFAULT_MODEL = "openai/gpt-4o"
 
 LUNARY_PUBLIC_KEY = os.getenv("LUNARY_PUBLIC_KEY")
 if not LUNARY_PUBLIC_KEY is None:
-    litellm.success_callback = ["lunary"]
+    #litellm.success_callback = ["lunary"]
+    pass
 
 if sys.stdout.isatty():
     COLOR_SEP = "\033[95m"  # Magenta
@@ -128,16 +131,25 @@ I'm ready to process messages.
     return primer
 
 class Agent(Entity):
-    def __init__ (self, address):
+    def __init__ (self, address, default_model = DEFAULT_MODEL):
         super().__init__(address)
         self.context = make_primer(address)
-        self.model = DEFAULT_MODEL
+        assert default_model in MODEL_PRICES, f"Unknown model {default_model}"
+        self.default_model = default_model
+        self.model = default_model
         self.total_cost = 0
 
     def add (self, msg):
         # TODO: handle special messages
         if 'X-Hint-Model' in msg:
-            self.model = msg['X-Hint-Model']
+            hint_model = msg['X-Hint-Model'].strip()
+            if len(hint_model) == 0:
+                logging.info(f"Reverting to default model {self.default_model}")
+                hint_model = self.default_model
+            if hint_model in MODEL_PRICES:
+                self.model = hint_model
+            else:
+                logging.info(f"Unknown model {hint_model}, ignoring")
         if 'X-Rollback' in msg:
             rollback = int(msg['X-Rollback'])
             self.context = self.context[:(rollback+1)]
@@ -198,21 +210,27 @@ class Agent(Entity):
             engine.enqueue(msg)
         return cost
 
-
 ENQUEUE_MEMORY = 0
 ENQUEUE_TASK = 1
 
 class Engine:
-    def __init__ (self, trace_path = None):
+    def __init__ (self, trace_path = None, allow_new_agents = False):
         self.queue = []
         self.offset = 0
         self.entities = {}
         if trace_path is None:
             trace_path = f"./trace.{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}"
         self.trace = open(trace_path, "w")
-        self.allow_new_agents = False
+        self.allow_new_agents = allow_new_agents
+        self.total_cost = 0
 
     def enqueue (self, msg, mode=ENQUEUE_TASK):
+        if mode == ENQUEUE_TASK:
+            if 'Date' in msg:
+                if len(msg['Date'].strip()) == 0:
+                    del msg['Date']
+            if not 'Date' in msg:
+                msg['Date'] = datetime.datetime.now().strftime("%a %b %d %H:%M:%S %Y")
         self.trace.write('\nFrom ' + '-' * 32 + '\n')
         content = msg.as_string()
         self.trace.write(content)
@@ -250,9 +268,6 @@ class Engine:
         self.entities[entity.address] = entity
 
     def process (self, msg, mode):
-        total_cost = 0
-        if mode == ENQUEUE_TASK:
-            print_message(msg)
         todo = []
         if "From" in msg:
             todo.append((msg["From"].strip(), ACTION_SAVE_ONLY))
@@ -283,24 +298,28 @@ class Engine:
                 action = ACTION_SAVE_ONLY
                 if not isinstance(entity, Agent):
                     continue
+            else:
+                if isinstance(entity, Agent):
+                    logging.info(f"Total cost so far: ${self.total_cost:.8f}")
             cost = entity.process(self, msg, action)
             if not cost is None:
-                total_cost += cost
-        return total_cost
+                self.total_cost += cost
 
-    def run (self, budget = None, stop_condition = None):
-        cost = 0
+
+    def run (self, stop_condition = None, debug = False):
         while self.offset < len(self.queue):
-            if budget is not None and cost > budget:
-                logging.info(f"Budget limit reached, stopping at ${cost:.8f}.")
-                break
-            if stop_condition is not None and stop_condition():
+            if stop_condition is not None and stop_condition(self.total_cost):
                 logging.info(f"Stop condition triggered.")
                 break
             mode, msg = self.queue[self.offset]
             self.offset += 1
-            cost += self.process(msg, mode)
-        logging.info(f"Total cost: ${cost:.8f}")
+            if mode == ENQUEUE_TASK:
+                print_message(msg)
+                if debug:
+                    print(f"Press enter to continue...")
+                    input()
+            self.process(msg, mode)
+        logging.info(f"Total cost: ${self.total_cost:.8f}")
 
     def prompt_for_action (self):
         # Print all models, numbered by 1, 2, ...

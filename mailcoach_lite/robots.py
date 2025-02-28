@@ -3,14 +3,17 @@ import logging
 import subprocess as sp
 from . import EmailMessage, Robot, ACTION_TO
 
-def add_lines (body, filename, content, top=50, bottom=50, min_skip = 10):
+def add_lines (body, filename, content, top=50, bottom=50, min_skip = 10, max_lines = 20, command = None):
     content = content.strip()
     if len(content) == 0:
         return
     lines = content.split('\n')
+    if command is not None:
+        if ('find' in command or 'grep' in command) and len(lines) > max_lines:
+            body.append(f"!!! Your command generates too many output lines.  Try to restrict the comamnd to produce less output.\n")
+            return
     skip = len(lines) - top - bottom
     if skip >= min_skip:
-        body.append(f"--- {filename}: top ---")
         body.extend(lines[:top])
         body.append(f"--- {filename}: {skip} lines skipped ---")
         body.extend(lines[-bottom:])
@@ -25,14 +28,19 @@ class Shell (Robot):
     def process (self, engine, msg, action):
         if action != ACTION_TO:
             return
-        command = msg.get("Subject", "")
+        command = msg.get("Subject", "").strip()
         stdin = msg.get_content()
         if isinstance(stdin, bytes):
             stdin = stdin.decode("utf-8")
 
+        if command.startswith('aa_edit '):
+            split = command.split(' ')
+            if len(split) > 2:
+                command = ' '.join(split[:2])
+
         result = sp.run(command, input=stdin, shell=True, capture_output=True, text=True)
         body = []
-        add_lines(body, 'stdout', result.stdout)
+        add_lines(body, 'stdout', result.stdout, command=command)
         add_lines(body, 'stderr', result.stderr)
         body = '\n'.join(body)
         #return result.stdout, result.stderr, result.returncode
