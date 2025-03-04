@@ -25,7 +25,7 @@ INPUT_PRICE_INDEX = 0
 OUTPUT_PRICE_INDEX = 3
 PRICE_UNIT = 1000000
 
-DEFAULT_MODEL = "openai/gpt-4o"
+DEFAULT_MODEL = "openai/gpt-4o-mini"
 
 LUNARY_PUBLIC_KEY = os.getenv("LUNARY_PUBLIC_KEY")
 if not LUNARY_PUBLIC_KEY is None:
@@ -360,7 +360,7 @@ class Engine:
             print("Invalid choice.")
             return None
 
-    def chat (self, to_address, model, user_address = "user@localdomain"):
+    def chat (self, to_address, model, user_address = "user@localdomain", debug = False):
         subject = ''
         while True:
             # get user input; \ continues to the next line
@@ -374,7 +374,7 @@ class Engine:
                     continue
                 action, param = resp
                 if action == 'model':
-                    self.model = model
+                    model = param
                     logging.info(f"Model set to {model}")
                 elif action == 'to':
                     to_address = param
@@ -397,4 +397,4 @@ class Engine:
                 message["X-Hint-Model"] = model
             message.set_content(user_input)
             self.enqueue(message)
-            self.run()
+            self.run(debug=debug)

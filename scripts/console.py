@@ -17,6 +17,7 @@ def main ():
     parser.add_argument('-q', '--queue', default=None, help='Path to the queue file')
     parser.add_argument('-c', '--chat', action='store_true', help='Chat mode')
     parser.add_argument('-u', '--user_address', default="user@localdomain", help='User address')
+    parser.add_argument('-d', '--debug', action='store_true', help='Debug mode')
     args = parser.parse_args()
 
     if args.memory is None:
@@ -36,9 +37,9 @@ def main ():
     engine.run()
 
     if args.chat:
-        to_address = "swe1@agents.localdomain"
+        to_address = "swe1@localdomain"
         model = DEFAULT_MODEL
-        engine.chat(to_address, model)
+        engine.chat(to_address, model, debug=args.debug)
 
 
 if __name__ == "__main__":
