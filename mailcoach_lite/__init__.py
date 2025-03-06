@@ -19,6 +19,8 @@ MODEL_PRICES = {
     'anthropic/claude-3-7-sonnet-20250219': [3.00, 3.75, 0.3, 15.0]
 }
 
+DEFAULT_MODEL_PRICE = [0.15, 0.00, 0.075, 0.6]
+
 MODELS = list(MODEL_PRICES.keys())
 
 INPUT_PRICE_INDEX = 0
@@ -26,6 +28,7 @@ OUTPUT_PRICE_INDEX = 3
 PRICE_UNIT = 1000000
 
 DEFAULT_MODEL = "openai/gpt-4o-mini"
+LITELLM_API_BASE = os.getenv("LITELLM_API_BASE")
 
 LUNARY_PUBLIC_KEY = os.getenv("LUNARY_PUBLIC_KEY")
 if not LUNARY_PUBLIC_KEY is None:
@@ -134,7 +137,7 @@ class Agent(Entity):
     def __init__ (self, address, default_model = DEFAULT_MODEL):
         super().__init__(address)
         self.context = make_primer(address)
-        assert default_model in MODEL_PRICES, f"Unknown model {default_model}"
+        #assert default_model in MODEL_PRICES, f"Unknown model {default_model}"
         self.default_model = default_model
         self.model = default_model
         self.total_cost = 0
@@ -180,7 +183,7 @@ class Agent(Entity):
 
     def inference (self):
         context = self.format_context()
-        resp = litellm.completion(model=self.model, messages=context)
+        resp = litellm.completion(model=self.model, messages=context, api_base=LITELLM_API_BASE)
         content = resp.choices[0].message.content
         try:
             msg =  message_from_string(content, policy=policy.default.clone(utf8=True))
@@ -191,7 +194,7 @@ class Agent(Entity):
         msg['M-Model'] = self.model
         msg['M-Tokens-Input'] = str(resp.usage.prompt_tokens)
         msg['M-Tokens-Output'] = str(resp.usage.completion_tokens)
-        prices = MODEL_PRICES[self.model]
+        prices = MODEL_PRICES.get(self.model, DEFAULT_MODEL_PRICE)
         cost = 0
         cost += prices[INPUT_PRICE_INDEX] * resp.usage.prompt_tokens / PRICE_UNIT
         cost += prices[OUTPUT_PRICE_INDEX] * resp.usage.completion_tokens / PRICE_UNIT
