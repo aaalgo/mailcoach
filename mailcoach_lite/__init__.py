@@ -181,12 +181,27 @@ class Agent(Entity):
                 })
         return context
 
+    def format_flat_context (self):
+        context = []
+        for serial, msg in enumerate(self.context):
+            context.append(format_message_for_AI(msg, serial))
+        return '\n'.join(context)
+
     def inference (self):
-        context = self.format_context()
-        resp = litellm.completion(model=self.model, messages=context, api_base=LITELLM_API_BASE)
-        content = resp.choices[0].message.content
+        if self.model.startswith("hosted_vllm/"):
+            context = self.format_flat_context()
+            print(context)
+            resp = litellm.completion(model=self.model, prompt=context, api_base=LITELLM_API_BASE)
+            content = resp.choices[0].text
+        else:
+            context = self.format_context()
+            resp = litellm.completion(model=self.model, messages=context, api_base=LITELLM_API_BASE)
+            content = resp.choices[0].message.content
+        print('-'* 20)
+        print(content)
+        print('-'* 20)
+        sys.exit(0)
         try:
-            msg =  message_from_string(content, policy=policy.default.clone(utf8=True))
         except Exception as e:
             logging.error(f"Failed to parse response: {e}")
             logging.error(content)
