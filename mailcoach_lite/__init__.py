@@ -190,21 +190,20 @@ class Agent(Entity):
         return '\n'.join(context)
 
     def inference (self):
-        if self.model.startswith("hosted_vllm/"):
+        if False and self.model.startswith("hosted_vllm/"):
             context = self.format_flat_context() + "\nFrom:"
             print('-'* 20)
             print(context)
             print('-'* 20)
             resp = litellm.text_completion(model=self.model, prompt=context, api_base=LITELLM_API_BASE)
             content = "From:" + resp.choices[0].text
+            print('-'* 20)
+            print(content)
+            print('-'* 20)
         else:
             context = self.format_context()
             resp = litellm.completion(model=self.model, messages=context, api_base=LITELLM_API_BASE)
             content = resp.choices[0].message.content
-        print('-'* 20)
-        print(content)
-        print('-'* 20)
-        sys.exit(0)
         try:
             msg =  message_from_string(content, policy=policy.default.clone(utf8=True))
         except Exception as e:
