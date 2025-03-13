@@ -169,12 +169,22 @@ class Agent(Entity):
     
     def format_context (self):
         context = []
+        last_role = None
         for serial, msg in enumerate(self.context):
             From = msg["From"].strip()
             if From == self.address:
                 role = 'assistant'
+                other = 'user'
             else:
                 role = 'user'
+                other = 'assistant'
+            if ('gemma' in self.model) and (last_role == role):
+                context.append({
+                    'role': other,
+                    'content': ''
+                    })
+            last_role = role
+
             context.append({
                 "role": role,
                 "content": format_message_for_AI(msg, serial)
