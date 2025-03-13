@@ -11,7 +11,7 @@ Mailcoach is the self-contained single-user version of [Postline](https://arxiv.
 
 - Using email as the communication protocol.
 - Extending the standard chat paradigm into multi-party chat.
-- Allow robots (commonly referred to as tools) to connect into the chat.
+- Allowing robots (commonly referred to as tools) to connect into the chat.
 
 # Setup
 
@@ -29,24 +29,48 @@ cd mailcoach
 pip3 install -e .
 ```
 
-# Command Line Interface
+# Quickstart
+
+## Chat with Agents
 
 ```
-mailcoach [-m path_to_memory_file] [-q path_to_queue_file] [-t path_to_trace]
+mailcoach [-m path_to_memory_file] [-t path_to_trace_file]
 ```
 
 - If a memory file is not specified, a sample is loaded.
 - If a trace path is not specified, the trace is written to `mailcoach.YYYYMMDDHHMMSS` under the current directory.
-- If a queue file is given, `mailcoach` will enter autopilot mode.  Otherwise, you'll see a chat interface.
 
-You can load the trace file with `-m` to continue an existing session.
+Memory file and trace file are of the same format.  You can load the trace file
+with `-m` to continue an existing session.
 
-The difference between memory and queue is as follows:
+## Task Automation
 
-- The messages in the memory file are only loaded into memory and not responded to.
-- The messages in the queue file are to be responded to.
+Prepare a text file called `task.mbox` using the following content:
 
-If you want to automate some task, put a seed message to the queue file.
+```
+From ----
+From: user@localdomain
+To: swe1@localdomain
+X-Hint-Model: openai/gpt-4o-mini
+
+Generate a fortune using command line.
+```
+
+Then run
+
+```
+mailcoach -m task.mbox
+```
+
+Mailcoach will run in non-interactive mode until all messages to AI agents are processed.  The messages to the user will not be responded to.
+
+## Task Automation in Auto Pilot Mode
+
+In the auto pilot mode, the AI will play the user role as well, so conversation will keep on until budget is reached.  You must provide a budget in auto pilot mode.
+
+```
+mailcoach -m task.mbox --auto --budget 0.05  # Use at most 5 cents.
+```
 
 # Tips
 
@@ -61,4 +85,3 @@ If you just type a message, the message goes to `swe1@localdomain`.
 Type [ENTER] without anything will bring up a menu which allows you to choose from models and the target of message.  Just enter the single number (for models) or letter (for email addressses) to make a choice.  Enter `0` to input your own model, or `z` to input a new address.  You can also use ":your subject" to change the email subject.
 
 If you want to create a new agent, simply pick a new address to send message to.
-
