@@ -251,7 +251,7 @@ class Engine:
         self.offset = 0
         self.entities = {}
         if trace_path is None:
-            trace_path = f"./trace.{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}"
+            trace_path = f"./mailcoach.{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}"
         self.trace = open(trace_path, "w")
         self.allow_new_agents = allow_new_agents
         self.total_cost = 0
@@ -351,13 +351,14 @@ class Engine:
                     print(f"Press enter to continue...")
                     input()
             self.process(msg, mode)
-        logging.info(f"Total cost: ${self.total_cost:.8f}")
+        #logging.info(f"Total cost: ${self.total_cost:.8f}")
 
     def prompt_for_action (self):
         # Print all models, numbered by 1, 2, ...
         todo = []
         for i, model in enumerate(MODELS):
-            todo.append(f"{i}: {model}")
+            todo.append(f"{i+1}: {model}")
+        todo.append("0: [choose model...]")
         display_list(todo)
         print()
 
@@ -365,6 +366,7 @@ class Engine:
         todo = []
         for i, address in enumerate(self.entities.keys(), ord('a')):
             todo.append(f"{chr(i)}: {address}")
+        todo.append("z: [choose address...]")
         display_list(todo)
         print()
         print(": [subject]")
@@ -375,8 +377,11 @@ class Engine:
         # If the user inputs a number, return a tuple ('model', chosen model)
         if choice.isdigit():
             index = int(choice)
-            if 0 <= index < len(MODELS):
-                return ('model', MODELS[index])
+            if index == 0:
+                model = input("Enter model: ")
+                return ('model', model)
+            if 1 <= index <= len(MODELS):
+                return ('model', MODELS[index-1])
             else:
                 print("Invalid model number.")
                 return None
@@ -384,6 +389,9 @@ class Engine:
         elif len(choice) == 1 and 'a' <= choice <= chr(ord('a') + len(self.entities) - 1):
             index = ord(choice) - ord('a')
             address = list(self.entities.keys())[index]
+            return ('to', address)
+        elif choice == 'z':
+            address = input("Enter address: ")
             return ('to', address)
         elif choice.startswith(":"):
             subject = choice[1:].strip()
@@ -396,7 +404,8 @@ class Engine:
         subject = ''
         while True:
             # get user input; \ continues to the next line
-            user_input = input("ready> ")
+            print(f"To:\033[94m{to_address}\033[0m Subject:\033[92m{subject}\033[0m Model:\033[93m{model}\033[0m")
+            user_input = input(f"> ")
             while user_input.endswith("\\"):
                 user_input = user_input[:-1] + '\n' + input("")
             user_input = user_input.strip()
@@ -410,10 +419,10 @@ class Engine:
                     logging.info(f"Model set to {model}")
                 elif action == 'to':
                     to_address = param
-                    logging.info(f"to_address: {to_address}")
+                    logging.info(f"To address set to: {to_address}")
                 elif action == 'subject':
                     subject = param
-                    logging.info(f"subject: {subject}")
+                    logging.info(f"Subject set to: {subject}")
                 else:
                     logging.error(f"Invalid action: {action} {param}")
                 continue

@@ -1,7 +1,7 @@
 
 From --------------------------------
 From: user@localdomain
-To: swe1@agents.localdomain
+To: swe1@localdomain
 X-Hint-Model: openai/gpt-4o-mini
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
@@ -15,7 +15,7 @@ be supplied as the stdin.  You'll receive a reply with the outcome.
 Now try to generate a fortune for me using the shell.
 
 From --------------------------------
-From: swe1@agents.localdomain  
+From: swe1@localdomain  
 To: shell@localdomain  
 Subject: fortune  
 Content-Type: text/plain  
@@ -23,7 +23,7 @@ X-Serial: 3
 
 
 From --------------------------------
-From: swe1@agents.localdomain
+From: swe1@localdomain
 To: user@localdomain
 Subject: Your Fortune
 Content-Type: text/plain
@@ -35,7 +35,7 @@ Exercise caution in your daily affairs.
 
 From --------------------------------
 From: user@localdomain
-To: swe1@agents.localdomain
+To: swe1@localdomain
 X-Hint-Model: openai/gpt-4o-mini
 Content-Type: text/plain
 
@@ -44,7 +44,7 @@ using the cat command (cat > poem.txt).  Remember the email body should be
 purely the stdin with nothing else.
 
 From --------------------------------
-From: swe1@agents.localdomain
+From: swe1@localdomain
 To: shell@localdomain
 Subject: cat > poem.txt  
 Content-Type: text/plain  
@@ -55,7 +55,7 @@ We asked for fortune, light and bright,
 
 From --------------------------------
 From: shell@localdomain
-To: swe1@agents.localdomain
+To: swe1@localdomain
 Subject: Exit Code: 0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
@@ -64,7 +64,7 @@ MIME-Version: 1.0
 
 
 From --------------------------------
-From: swe1@agents.localdomain
+From: swe1@localdomain
 To: user@localdomain
 Subject: Your Poem is Saved Correctly  
 Content-Type: text/plain  
@@ -74,7 +74,7 @@ The poem has been successfully saved to poem.txt.
 
 From --------------------------------
 From: user@localdomain
-To: swe1@agents.localdomain
+To: swe1@localdomain
 X-Hint-Model: openai/gpt-4o-mini
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: quoted-printable
@@ -128,7 +128,7 @@ locate the file to modify.
 
 From --------------------------------
 From: user@localdomain
-To: swe1@agents.localdomain
+To: swe1@localdomain
 Subject:
 X-Hint-Model: openai/gpt-4o
 Content-Type: text/plain; charset="utf-8"
@@ -142,7 +142,7 @@ the goal is to fix the code to pass tests; don't worry about documentation or=
  writing your own testing cases.
 
 From --------------------------------
-From: swe1@agents.localdomain  
+From: swe1@localdomain  
 To: shell@localdomain  
 Subject: aa_ticket  
 Content-Type: text/plain  
@@ -157,7 +157,7 @@ Date: Mon, 03 Mar 2025 20:02:57 -0000
 
 From --------------------------------
 From: shell@localdomain
-To: swe1@agents.localdomain
+To: swe1@localdomain
 Subject: Exit Code: 0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: quoted-printable
@@ -187,7 +187,7 @@ Could not import gdcm
 Or am I missing something?
 
 From --------------------------------
-From: swe1@agents.localdomain
+From: swe1@localdomain
 To: user@localdomain
 Subject: Ticket Analysis  
 Content-Type: text/plain  
@@ -211,7 +211,7 @@ Next steps:
 
 From --------------------------------
 From: user@localdomain
-To: swe1@agents.localdomain
+To: swe1@localdomain
 Subject:
 X-Hint-Model: openai/gpt-4o
 Content-Type: text/plain; charset="utf-8"
@@ -222,7 +222,7 @@ Date: Mon, 03 Mar 2025 20:03:46 -0000
 I think you should just grep for code that sets log levels.
 
 From --------------------------------
-From: swe1@agents.localdomain
+From: swe1@localdomain
 To: shell@localdomain
 Subject: grep -r "setLevel" .  
 Content-Type: text/plain  
@@ -237,7 +237,7 @@ Date: Mon, 03 Mar 2025 20:03:50 -0000
 
 From --------------------------------
 From: shell@localdomain
-To: swe1@agents.localdomain
+To: swe1@localdomain
 Subject: Exit Code: 0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
@@ -250,7 +250,7 @@ Date: Mon, 03 Mar 2025 20:03:54 -0000
 ./pydicom/config.py:        logger.setLevel(logging.WARNING)
 
 From --------------------------------
-From: swe1@agents.localdomain
+From: swe1@localdomain
 To: shell@localdomain
 Subject: aa_open pydicom/config.py  
 Content-Type: text/plain  
@@ -265,7 +265,7 @@ Date: Mon, 03 Mar 2025 20:03:58 -0000
 
 From --------------------------------
 From: shell@localdomain
-To: swe1@agents.localdomain
+To: swe1@localdomain
 Subject: Exit Code: 0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
@@ -290,7 +290,7 @@ total lines: 132
 can scroll
 
 From --------------------------------
-From: swe1@agents.localdomain
+From: swe1@localdomain
 To: shell@localdomain
 Subject: aa_search logger.setLevel  
 Content-Type: text/plain  
@@ -305,7 +305,7 @@ Date: Mon, 03 Mar 2025 20:04:04 -0000
 
 From --------------------------------
 From: shell@localdomain
-To: swe1@agents.localdomain
+To: swe1@localdomain
 Subject: Exit Code: 0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
@@ -328,7 +328,7 @@ total lines: 132
 can scroll
 
 From --------------------------------
-From: swe1@agents.localdomain
+From: swe1@localdomain
 To: shell@localdomain
 Subject: aa_scroll up  
 Content-Type: text/plain  
@@ -343,7 +343,7 @@ Date: Mon, 03 Mar 2025 20:04:10 -0000
 
 From --------------------------------
 From: shell@localdomain
-To: swe1@agents.localdomain
+To: swe1@localdomain
 Subject: Exit Code: 0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: quoted-printable
@@ -378,7 +378,7 @@ total lines: 132
 can scroll
 
 From --------------------------------
-From: swe1@agents.localdomain
+From: swe1@localdomain
 To: shell@localdomain
 Subject: aa_select 113-127  
 Content-Type: text/plain  
@@ -393,7 +393,7 @@ Date: Mon, 03 Mar 2025 20:04:15 -0000
 
 From --------------------------------
 From: shell@localdomain
-To: swe1@agents.localdomain
+To: swe1@localdomain
 Subject: Exit Code: 0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: quoted-printable
@@ -426,7 +426,7 @@ cannot scroll
 selection: 113-127
 
 From --------------------------------
-From: swe1@agents.localdomain
+From: swe1@localdomain
 To: shell@localdomain
 Subject: aa_rewrite  
 Content-Type: text/plain  
@@ -453,7 +453,7 @@ def debug(debug_on=True):
 
 From --------------------------------
 From: shell@localdomain
-To: swe1@agents.localdomain
+To: swe1@localdomain
 Subject: Exit Code: 0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: quoted-printable
@@ -495,7 +495,7 @@ total lines: 131
 can scroll
 
 From --------------------------------
-From: swe1@agents.localdomain
+From: swe1@localdomain
 To: shell@localdomain
 Subject: aa_test  
 Content-Type: text/plain  
@@ -510,7 +510,7 @@ Date: Mon, 03 Mar 2025 20:04:37 -0000
 
 From --------------------------------
 From: shell@localdomain
-To: swe1@agents.localdomain
+To: swe1@localdomain
 Subject: Exit Code: 0
 Content-Type: text/plain; charset="utf-8"
 Content-Transfer-Encoding: 7bit
@@ -522,7 +522,7 @@ Date: Mon, 03 Mar 2025 20:04:41 -0000
 Congratulations! You have passed the test.
 
 From --------------------------------
-From: swe1@agents.localdomain
+From: swe1@localdomain
 To: user@localdomain
 Subject: Issue Resolved Successfully  
 Content-Type: text/plain  
