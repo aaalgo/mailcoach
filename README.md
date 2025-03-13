@@ -113,7 +113,7 @@ You can optionally supply the API base of the model by appending `@http://the_ap
 
 ## Running the vLLM server
 
-The following script serves the Llama 3.3 70B model on a machine with 8 GPUs of 40GB each.  It does 4-way tensor parallelization and 4-way pipeline parallelization; that is, each request is handled by 4 GPUs in parallel, and at most 2 requests can be processed in parallel.
+The following script serves the Llama 3.3 70B model on a machine with 8 GPUs of 40GB each.  It does 4-way tensor parallelization and 2-way pipeline parallelization; that is, each request is handled by 4 GPUs in parallel, and at most 2 requests can be processed in parallel.
 
 ```
 export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
@@ -124,13 +124,13 @@ vllm serve $MODEL --tensor-parallel-size 4 --pipeline-parallel-size 2 --dtype bf
 
 ## Running Mailcoach
 
-Suppose the above server runs at `http://192.168.122.241:4444`, use the following queue file, or chat with `--model hosted_vllm/gemma-3-27b-it@http://192.168.122.241:4444/v1`
+Suppose the above server runs on host `192.168.122.241`, use the following queue file, or chat with `--model hosted_vllm/Llama-3.3-70B-Instruct@http://192.168.122.241:4444/v1`
 
 ```
 From ----
 From: user@localdomain
 To: swe1@localdomain
-X-Hint-Model: hosted_vllm/gemma-3-27b-it@http://192.168.122.241:4444/v1
+X-Hint-Model: hosted_vllm/Llama-3.3-70B-Instruct@http://192.168.122.241:4444/v1
 
 Generate a fortune using command line.
 ```
