@@ -29,7 +29,6 @@ OUTPUT_PRICE_INDEX = 3
 PRICE_UNIT = 1000000
 
 DEFAULT_MODEL = "openai/gpt-4o-mini"
-LITELLM_API_BASE = os.getenv("LITELLM_API_BASE")
 
 LUNARY_PUBLIC_KEY = os.getenv("LUNARY_PUBLIC_KEY")
 if not LUNARY_PUBLIC_KEY is None:
@@ -150,10 +149,8 @@ class Agent(Entity):
             if len(hint_model) == 0:
                 logging.info(f"Reverting to default model {self.default_model}")
                 hint_model = self.default_model
-            if hint_model in MODEL_PRICES:
-                self.model = hint_model
             else:
-                logging.info(f"Unknown model {hint_model}, ignoring")
+                self.model = hint_model
         if 'X-Rollback' in msg:
             rollback = int(msg['X-Rollback'])
             self.context = self.context[:(rollback+1)]
@@ -201,19 +198,23 @@ class Agent(Entity):
         return '\n'.join(context)
 
     def inference (self):
+        model = self.model
+        api_base = None
+        if '@' in model:
+            model, api_base = model.split('@')
         if False and self.model.startswith("hosted_vllm/"):
             context = self.format_flat_context() + "\nFrom:"
             print('-'* 20)
             print(context)
             print('-'* 20)
-            resp = litellm.text_completion(model=self.model, prompt=context, api_base=LITELLM_API_BASE)
+            resp = litellm.text_completion(model=model, prompt=context, api_base=api_base)
             content = "From:" + resp.choices[0].text
             print('-'* 20)
             print(content)
             print('-'* 20)
         else:
             context = self.format_context()
-            resp = litellm.completion(model=self.model, messages=context, api_base=LITELLM_API_BASE)
+            resp = litellm.completion(model=model, messages=context, api_base=api_base)
             content = resp.choices[0].message.content
         try:
             msg =  message_from_string(content, policy=policy.default.clone(utf8=True))
