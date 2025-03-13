@@ -20,9 +20,10 @@ def main ():
     parser.add_argument('-m', '--memory', default=SAMPLE_PATH, help='Path to the memory file')
     parser.add_argument('-q', '--queue', default=None, help='Path to the queue file')
     parser.add_argument('-u', '--user_address', default="user@localdomain", help='User address')
-    parser.add_argument('-t', '--trace', default=None, help='Path to the trace file')
-    parser.add_argument('--auto', action='store_true', help='Autopilot mode')
+    parser.add_argument('-t', '--trace', default=None, help='Path to the output trace file')
     parser.add_argument('--budget', default=None, type=float, help='Autopilot budget')
+    parser.add_argument('-c', '--chat', action='store_true', help='Enter chat after processing the queue')
+    parser.add_argument('--auto', action='store_true', help='Autopilot mode')
     parser.add_argument('--debug', action='store_true', help='Debug mode')
     args = parser.parse_args()
     
@@ -56,7 +57,7 @@ def main ():
     
     engine.run(stop_condition, args.debug)
 
-    if args.queue is None:
+    if args.queue is None or args.chat:
         entities = set(engine.entities.keys())
         entities.remove(args.user_address)
         entities.remove(SHELL_ADDRESS)

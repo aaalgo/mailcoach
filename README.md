@@ -52,6 +52,8 @@ mailcoach [-m path_to_memory] [-t path_to_trace] [-u user_address] [--debug]
 Memory file and trace file (and also the queue file) are of the same format.
 You can load the trace file with `-m` to continue an existing session.
 
+You can import the mbox files into almost any email clients, e.g. claws-mail.
+
 ## The Default Memory
 
 (You are encouraged to read the content of the file. The address will be printed upon start.)
@@ -70,6 +72,8 @@ If you want to create a new agent, simply pick a new address to send message to.
 
 ## Task Automation
 
+In addition to the parameters described above, mailcoach can run with a queue file for automation.  When a queue file is provided, you won't see the interactive chat interface unless you add `-c,--chat`.
+
 Prepare a text file called `queue.mbox` using the following content:
 
 ```
@@ -87,11 +91,11 @@ Then run
 mailcoach -q queue.mbox [--budget 0.05]
 ```
 
-Mailcoach will run in non-interactive mode until all messages to AI agents are processed.  The messages to the user will not be processed.  If you rig a multi-agent conversation, make sure you set a budget so the conversation doesn't go one forever.
+Mailcoach will run in non-interactive mode until all messages to AI agents are processed.  The messages to the user will not be processed.  If your queue file involves a multi-agent conversation, make sure you set a budget so the conversation doesn't go one forever.
 
-## Task Automation in Auto Pilot Mode
+## Auto Pilot
 
-In the auto pilot mode, the AI will play the user role as well, so conversation will keep on until budget is reached.  You must provide a budget in auto pilot mode.
+In the auto pilot mode, the AI will play the user's role as well, so conversation will keep on until the budget is reached.  In auto pilot mode the budget is mandatory.
 
 ```
 mailcoach -m queue.mbox --auto --budget 0.001  # Use at most 5 cents.
