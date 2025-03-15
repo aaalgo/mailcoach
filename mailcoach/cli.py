@@ -25,6 +25,7 @@ def main ():
     parser.add_argument('-c', '--chat', action='store_true', help='Enter chat after processing the queue')
     parser.add_argument('--auto', action='store_true', help='Autopilot mode')
     parser.add_argument('--debug', action='store_true', help='Debug mode')
+    parser.add_argument('--shell', default=None, help='Shell URL')
     args = parser.parse_args()
     
     logging.basicConfig(level=logging.INFO)
@@ -42,7 +43,7 @@ def main ():
     SHELL_ADDRESS = "shell@localdomain"
     if not args.auto:
         engine.register(User(args.user_address))
-    engine.register(Shell(SHELL_ADDRESS))
+    engine.register(Shell(SHELL_ADDRESS, args.shell))
     if args.memory:
         engine.load_mbox(args.memory, ENQUEUE_MEMORY)
     if args.queue:

@@ -1,11 +1,12 @@
 import re
 import logging
 import subprocess as sp
+from types import SimpleNamespace
+import requests
 from . import EmailMessage, Robot, ACTION_TO
 
 def add_lines (body, filename, content, top=50, bottom=50, min_skip = 10, max_lines = 20, command = None):
-    content = content.strip()
-    if len(content) == 0:
+    if len(content.strip()) == 0:
         return
     lines = content.split('\n')
     if command is not None:
@@ -22,8 +23,21 @@ def add_lines (body, filename, content, top=50, bottom=50, min_skip = 10, max_li
         body.extend(lines)
 
 class Shell (Robot):
-    def __init__(self, address):
+    def __init__(self, address, url):
         super().__init__(address)
+        self.url = url
+
+    def run_remote_command (self, command, stdin):
+        response = requests.post(
+            f"{self.url}/api/run",
+            json={"command": command, "stdin": stdin}
+        )
+        resp = response.json()
+        return SimpleNamespace(
+            stdout = resp["stdout"],
+            stderr = resp["stderr"],
+            returncode = resp["returncode"]
+        )
     
     def process (self, engine, msg, action):
         if action != ACTION_TO:
@@ -33,12 +47,10 @@ class Shell (Robot):
         if isinstance(stdin, bytes):
             stdin = stdin.decode("utf-8")
 
-        if command.startswith('aa_edit '):
-            split = command.split(' ')
-            if len(split) > 2:
-                command = ' '.join(split[:2])
-
-        result = sp.run(command, input=stdin, shell=True, capture_output=True, text=True)
+        if self.url is not None:
+            result = self.run_remote_command(command, stdin)
+        else:
+            result = sp.run(command, input=stdin, shell=True, capture_output=True, text=True)
         body = []
         add_lines(body, 'stdout', result.stdout, command=command)
         add_lines(body, 'stderr', result.stderr)
