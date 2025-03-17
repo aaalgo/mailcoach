@@ -39,6 +39,11 @@ class Shell (Robot):
             returncode = resp["returncode"]
         )
     
+    def shutdown_stub (self):
+        response = requests.get(
+            f"{self.url}/api/shutdown",
+        )
+    
     def process (self, engine, msg, action):
         if action != ACTION_TO:
             return
