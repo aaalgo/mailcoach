@@ -1,6 +1,7 @@
 __version__ = "0.2.0"
 import os
 import sys
+import copy
 from abc import ABC, abstractmethod
 import pickle
 import logging
@@ -32,7 +33,7 @@ DEFAULT_MODEL = "openai/gpt-4o-mini"
 
 LUNARY_PUBLIC_KEY = os.getenv("LUNARY_PUBLIC_KEY")
 if not LUNARY_PUBLIC_KEY is None:
-    #litellm.success_callback = ["lunary"]
+    litellm.success_callback = ["lunary"]
     pass
 
 if sys.stdout.isatty():
@@ -133,6 +134,20 @@ I'm ready to process messages.
     primer.append(msg)
     return primer
 
+def enumerate_ancestors (address):
+    end_offset = address.find('@')
+    if end_offset <= 0:
+        return
+    offset = 0
+    while offset < end_offset:
+        offset = address.find('.', offset)
+        if offset < 0:
+            break
+        if offset >= end_offset:
+            break
+        offset += 1
+        yield address[offset:]
+
 class Agent(Entity):
     def __init__ (self, address, default_model = DEFAULT_MODEL):
         super().__init__(address)
@@ -141,9 +156,23 @@ class Agent(Entity):
         self.default_model = default_model
         self.model = default_model
         self.total_cost = 0
+        self.expect = set()
+    
+    def clone_context (self, to_address, replace=True):
+        context = []
+        for msg in self.context:
+            msg_text = msg.as_string().replace(self.address, to_address)
+            msg =  message_from_string(msg_text, policy=policy.default.clone(utf8=True))
+            context.append(msg)
+        return context
 
     def add (self, msg):
         # TODO: handle special messages
+        From = msg['From'].strip()
+        if From in self.expect:
+            self.expect.remove(From)
+            logging.info(f"{self.address}: Expected message received from {From}")
+            logging.info(f"{self.address}: Expecting {self.expect}")
         if 'X-Hint-Model' in msg:
             hint_model = msg['X-Hint-Model'].strip()
             if len(hint_model) == 0:
@@ -163,6 +192,13 @@ class Agent(Entity):
                     self.context.pop()
                 else:
                     break
+        if 'X-Expect' in msg:
+            expect = [x.strip() for x in msg['X-Expect'].split(',')]
+            self.expect = set(expect)
+
+        if 'X-Drop' in msg:
+            return
+
         self.context.append(msg)
     
     def format_context (self):
@@ -238,6 +274,8 @@ class Agent(Entity):
         self.add(msg)
         if action != ACTION_TO:
             # TODO: use a cheap model to test whether we want to reply
+            return
+        if len(self.expect) > 0:
             return
         msgs, cost = self.inference()
         for msg in msgs:
@@ -323,6 +361,12 @@ class Engine:
             if not address in self.entities:
                 if is_agent and self.allow_new_agents:
                     agent = Agent(address)
+                    for parent_address in enumerate_ancestors(address):
+                        parent = self.entities.get(parent_address, None)
+                        if not parent is None:
+                            logging.info(f"Agent {address} inheriting context from {parent_address}")
+                            agent.context = parent.clone_context(address)
+                            break
                     self.entities[address] = agent
                 else:
                     logging.warning(f"Unknown address {address}, message not delivered.")

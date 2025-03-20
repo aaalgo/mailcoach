@@ -11,7 +11,7 @@ def add_lines (body, filename, content, top=50, bottom=50, min_skip = 10, max_li
     lines = content.split('\n')
     if command is not None:
         if ('find' in command or 'grep' in command) and len(lines) > max_lines:
-            body.append(f"!!! Your command generates too many output lines.  Try to restrict the comamnd to produce less output.\n")
+            body.append(f"!!! Your command generates too many output lines.  Try to restrict the comamnd to produce less output.  If you are looking for the definition of a class or a function, try aa_find_class or aa_find_def .\n")
             return
     skip = len(lines) - top - bottom
     if skip >= min_skip:
@@ -37,11 +37,6 @@ class Shell (Robot):
             stdout = resp["stdout"],
             stderr = resp["stderr"],
             returncode = resp["returncode"]
-        )
-    
-    def shutdown_stub (self):
-        response = requests.get(
-            f"{self.url}/api/shutdown",
         )
     
     def process (self, engine, msg, action):

@@ -9,19 +9,6 @@ import time
 
 app = Flask(__name__)
 
-def shutdown_server():
-    # Give a small delay to allow the response to be sent
-    print("Server shutdown...")
-    time.sleep(1.0)
-    # Exit the program
-    sys.exit(0)
-
-@app.route('/api/shutdown', methods=['GET'])
-def shutdown():
-    # Start a thread to shutdown the server
-    threading.Thread(target=shutdown_server).start()
-    return jsonify({})
-
 @app.route('/api/run', methods=['POST'])
 def run_command():
     try:
@@ -38,10 +25,9 @@ def run_command():
             text=True,
             shell=True
         )
-        
         # Send stdin if provided
         stdout, stderr = process.communicate(input=stdin)
-        
+
         return jsonify({
             'returncode': process.returncode,
             'stdout': stdout,
