@@ -3,7 +3,6 @@ import os
 import sys
 import copy
 from abc import ABC, abstractmethod
-import pickle
 import logging
 import datetime
 from email import policy, message_from_bytes, message_from_string
@@ -18,7 +17,9 @@ MODEL_PRICES = {
     'openai/gpt-4o':                [2.50, 0.00, 1.250, 10.0],
     'anthropic/claude-3-5-haiku-latest':   [0.80, 1.00, 0.080, 4.00],
     'anthropic/claude-3-5-sonnet-latest':  [3.00, 3.75, 0.300, 15.0],
-    'anthropic/claude-3-7-sonnet-20250219': [3.00, 3.75, 0.3, 15.0]
+    'anthropic/claude-3-7-sonnet-20250219': [3.00, 3.75, 0.3, 15.0],
+    'gemini/gemini-2.0-flash': [0.1, 0.0, 0.0, 0.4],
+    'gemini/gemini-2.0-flash-lite': [0.075, 0.0, 0.0, 0.3]
 }
 
 DEFAULT_MODEL_PRICE = [0.15, 0.00, 0.075, 0.6]
@@ -109,10 +110,6 @@ class Entity(ABC):
     def process (self, engine, msg, action):
         assert False, "Not implemented"
 
-class Robot(Entity):
-    def __init__ (self, address):
-        super().__init__(address)
-
 def make_primer (agent_address):
     primer = []
     msg = EmailMessage()
@@ -156,12 +153,14 @@ class Agent(Entity):
         self.default_model = default_model
         self.model = default_model
         self.total_cost = 0
-        self.expect = set()
+        self.expect = set()     # TODO
     
     def clone_context (self, to_address, replace=True):
         context = []
         for msg in self.context:
-            msg_text = msg.as_string().replace(self.address, to_address)
+            msg_text = msg.as_string()
+            if replace:
+                msg_text = msg_text.replace(self.address, to_address)
             msg =  message_from_string(msg_text, policy=policy.default.clone(utf8=True))
             context.append(msg)
         return context
@@ -200,6 +199,15 @@ class Agent(Entity):
             return
 
         self.context.append(msg)
+
+    def load_mbox (self, mbox_path, append=False):
+        mbox = mailbox.mbox(mbox_path)
+        if not append:
+            self.context = []
+        for msg in mbox:
+            msg = message_from_bytes(msg.as_bytes(), policy=policy.default.clone(utf8=True))
+            assert isinstance(msg, EmailMessage)
+            self.context.append(msg)
     
     def format_context (self):
         context = []
@@ -290,8 +298,7 @@ class Engine:
         self.queue = []
         self.offset = 0
         self.entities = {}
-        if trace_path is None:
-            trace_path = f"./mailcoach.{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}"
+        assert not trace_path is None
         self.trace = open(trace_path, "w")
         self.allow_new_agents = allow_new_agents
         self.total_cost = 0
@@ -303,6 +310,7 @@ class Engine:
                     del msg['Date']
             if not 'Date' in msg:
                 msg['Date'] = datetime.datetime.now().strftime("%a %b %d %H:%M:%S %Y")
+        # maybe add mode to header
         self.trace.write('\nFrom ' + '-' * 32 + '\n')
         content = msg.as_string()
         self.trace.write(content)
@@ -322,25 +330,12 @@ class Engine:
             loaded += 1
         logging.info(f"Loaded {loaded} messages (mode = {mode})")
 
-    def save_mbox (self, mbox_path = '/dev/stdout', address = None):
-        messages = self.queue
-        if not address is None:
-            agent = self.entities.get(address, None)
-            assert isinstance(agent, Agent), "Can only save agent address."
-            messages = agent.context
-        with open(mbox_path, "w") as f:
-            for msg in messages:
-                f.write(f"From {msg['From']}\n")
-                f.write(msg.as_string())
-                f.write("\n")
-        pass
-
     def register (self, entity):
         assert not entity.address in self.entities
         self.entities[entity.address] = entity
 
     def process (self, msg, mode):
-        todo = []
+        todo = []   # list of (address, action)
         if "From" in msg:
             todo.append((msg["From"].strip(), ACTION_SAVE_ONLY))
         if "To" in msg:
@@ -350,12 +345,14 @@ class Engine:
             for address in msg["Cc"].split(','):
                 todo.append((address.strip(), ACTION_CC))
         if "Bcc" in msg:
-            for address in msg["Bcc"].split(','):
-                todo.append((address.strip(), ACTION_CC))
-            msg0 = msg
-            msg = message_from_bytes(msg.as_bytes(), policy=policy.default.clone(utf8=True))
-            del msg["Bcc"]
-            assert isinstance(msg, EmailMessage)
+            assert False, "Bcc not supported"
+            #for address in msg["Bcc"].split(','):
+            #    todo.append((address.strip(), ACTION_CC))
+
+            #msg0 = msg
+            #msg = message_from_bytes(msg.as_bytes(), policy=policy.default.clone(utf8=True))
+            #del msg["Bcc"]
+            #assert isinstance(msg, EmailMessage)
         for address, action in todo:
             is_agent = True #address.endswith("@agents.localdomain")
             if not address in self.entities:
@@ -372,6 +369,7 @@ class Engine:
                     logging.warning(f"Unknown address {address}, message not delivered.")
                     continue
             entity = self.entities[address]
+            assert entity is not None, f"Unknown address {address}"
             if mode == ENQUEUE_MEMORY:
                 action = ACTION_SAVE_ONLY
                 if not isinstance(entity, Agent):
@@ -382,7 +380,6 @@ class Engine:
             cost = entity.process(self, msg, action)
             if not cost is None:
                 self.total_cost += cost
-
 
     def run (self, stop_condition = None, debug = False):
         while self.offset < len(self.queue):
@@ -451,9 +448,13 @@ class Engine:
         while True:
             # get user input; \ continues to the next line
             print(f"To:\033[94m{to_address}\033[0m Subject:\033[92m{subject}\033[0m Model:\033[93m{model}\033[0m")
-            user_input = input(f"> ")
-            while user_input.endswith("\\"):
-                user_input = user_input[:-1] + '\n' + input("")
+            try: 
+                user_input = input(f"> ")
+                while user_input.endswith("\\"):
+                    user_input = user_input[:-1] + '\n' + input("")
+            except EOFError:
+                logging.info("EOF")
+                break
             user_input = user_input.strip()
             if len(user_input) == 0:
                 resp = self.prompt_for_action()
@@ -485,3 +486,11 @@ class Engine:
             message.set_content(user_input)
             self.enqueue(message)
             self.run(debug=debug)
+
+def save_mbox (mbox_path, messages):
+    with open(mbox_path, "w") as f:
+        for msg in messages:
+            f.write(f"From {msg['From']}\n")
+            f.write(msg.as_string())
+            f.write("\n")
+    pass

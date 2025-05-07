@@ -3,7 +3,7 @@ import logging
 import subprocess as sp
 from types import SimpleNamespace
 import requests
-from . import EmailMessage, Robot, ACTION_TO
+from . import EmailMessage, Entity, ACTION_TO
 
 def add_lines (body, filename, content, top=50, bottom=50, min_skip = 10, max_lines = 20, command = None):
     if len(content.strip()) == 0:
@@ -22,7 +22,7 @@ def add_lines (body, filename, content, top=50, bottom=50, min_skip = 10, max_li
         body.append(f"--- {filename} ---")
         body.extend(lines)
 
-class Shell (Robot):
+class Shell (Entity):
     def __init__(self, address, url):
         super().__init__(address)
         self.url = url

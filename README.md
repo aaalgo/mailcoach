@@ -46,13 +46,20 @@ The full command is
 mailcoach [-m path_to_memory] [-t path_to_trace] [-u user_address] [--debug]
 ```
 
-- If a memory file is not specified, a sample is loaded.
+- If a memory file/directory is not specified, a default sample is loaded.
 - If a trace path is not specified, the trace is written to `mailcoach.YYYYMMDDHHMMSS` under the current directory.
 - If the user address is specified, use this address to represent the user. 
 - If --debug is specified, ask for confirmation before each AI generation.
 
-Memory file and trace file (and also the queue file) are of the same format.
-You can load the trace file with `-m` to continue an existing session.
+The memory can be a single file (for compatibility) or a directory of
+mailboxes, one for each agent.
+
+The trace is a directory of the same format as memory and saves the
+global trace as well as the memory of each agent.
+
+You can load the trace with `-m` to continue an existing session.
+
+Note that the per-agent memory is only saved when you normally exit a session.  If it is a chat session, you can end with Ctrl+D.  If the program crashes or if you kill it, you won't have the per-agent mbox; but there would still be a trace file which you can load with -m to recover your data.
 
 You can import the mbox files into almost any email clients, e.g. claws-mail.
 

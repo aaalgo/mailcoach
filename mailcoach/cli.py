@@ -3,7 +3,7 @@ import sys
 from mailcoach import *
 from mailcoach.robots import *
 
-class User (Robot):
+class User (Entity):
     def __init__ (self, address):
         super().__init__(address)
 
@@ -17,10 +17,10 @@ def main ():
 
     SAMPLE_PATH = pkg_resources.resource_filename('mailcoach', 'data/sample0.mbox')
     parser = argparse.ArgumentParser(description='Process an mbox file.')
-    parser.add_argument('-m', '--memory', default=SAMPLE_PATH, help='Path to the memory file')
+    parser.add_argument('-m', '--memory', default=SAMPLE_PATH, help='Path to the memory file, or directory')
     parser.add_argument('-q', '--queue', default=None, help='Path to the queue file')
     parser.add_argument('-u', '--user_address', default="user@localdomain", help='User address')
-    parser.add_argument('-t', '--trace', default=None, help='Path to the output trace file')
+    parser.add_argument('-t', '--trace', default=None, help='Path to the output trace directory')
     parser.add_argument('--budget', default=None, type=float, help='Autopilot budget')
     parser.add_argument('-c', '--chat', action='store_true', help='Enter chat after processing the queue')
     parser.add_argument('--auto', action='store_true', help='Autopilot mode')
@@ -39,13 +39,26 @@ def main ():
         if os.path.exists(MEMORY_PATH):
             args.memory = MEMORY_PATH
 
-    engine = Engine(args.trace, allow_new_agents = True)
+    if args.trace is None:
+        args.trace = f"./mailcoach.{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}"
+    os.makedirs(args.trace, exist_ok=True)
+    engine = Engine(os.path.join(args.trace, 'trace'), allow_new_agents = True)
     SHELL_ADDRESS = "shell@localdomain"
     if not args.auto:
         engine.register(User(args.user_address))
     engine.register(Shell(SHELL_ADDRESS, args.shell))
+
     if args.memory:
-        engine.load_mbox(args.memory, ENQUEUE_MEMORY)
+        if os.path.isdir(args.memory):
+            for filename in os.listdir(args.memory):
+                if filename.endswith('.mbox'):
+                    address = filename[:-5]  # Remove the '.mbox' extension to get the address
+                    agent = Agent(address)
+                    engine.register(agent)
+                    agent.load_mbox(os.path.join(args.memory, filename), append=False)
+        else:
+            engine.load_mbox(args.memory, ENQUEUE_MEMORY)
+
     if args.queue:
         engine.load_mbox(args.queue, ENQUEUE_TASK)
 
@@ -68,3 +81,7 @@ def main ():
         model = DEFAULT_MODEL
         engine.chat(to_address, model, debug=args.debug)
 
+    for entity in engine.entities.values():
+        if not hasattr(entity, 'context'):
+            continue
+        save_mbox(os.path.join(args.trace, f"{entity.address}.mbox"), entity.context)
