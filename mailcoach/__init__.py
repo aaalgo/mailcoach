@@ -104,7 +104,17 @@ ACTION_SAVE_ONLY = 3
 class Entity(ABC):
     def __init__ (self, address):
         self.address = address
+        self.context = []
         pass
+
+    def load_mbox (self, mbox_path, append=False):
+        mbox = mailbox.mbox(mbox_path)
+        if not append:
+            self.context = []
+        for msg in mbox:
+            msg = message_from_bytes(msg.as_bytes(), policy=policy.default.clone(utf8=True))
+            assert isinstance(msg, EmailMessage)
+            self.context.append(msg)
 
     @abstractmethod
     def process (self, engine, msg, action):
@@ -200,15 +210,6 @@ class Agent(Entity):
 
         self.context.append(msg)
 
-    def load_mbox (self, mbox_path, append=False):
-        mbox = mailbox.mbox(mbox_path)
-        if not append:
-            self.context = []
-        for msg in mbox:
-            msg = message_from_bytes(msg.as_bytes(), policy=policy.default.clone(utf8=True))
-            assert isinstance(msg, EmailMessage)
-            self.context.append(msg)
-    
     def format_context (self):
         context = []
         last_role = None
@@ -372,8 +373,6 @@ class Engine:
             assert entity is not None, f"Unknown address {address}"
             if mode == ENQUEUE_MEMORY:
                 action = ACTION_SAVE_ONLY
-                if not isinstance(entity, Agent):
-                    continue
             else:
                 if isinstance(entity, Agent):
                     logging.info(f"Total cost so far: ${self.total_cost:.8f}")
@@ -381,9 +380,14 @@ class Engine:
             if not cost is None:
                 self.total_cost += cost
 
-    def run (self, stop_condition = None, debug = False):
+    def run (self, stop_conditions = [], debug = False):
         while self.offset < len(self.queue):
-            if stop_condition is not None and stop_condition(self.total_cost):
+            stop = False
+            for stop_condition in stop_conditions:
+                if stop_condition(self):
+                    stop = True
+                    break
+            if stop:
                 logging.info(f"Stop condition triggered.")
                 break
             mode, msg = self.queue[self.offset]

@@ -1,0 +1,134 @@
+\documentclass[11pt]{article}
+
+\usepackage[a4paper,margin=1in]{geometry}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{url}
+\usepackage{times}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+
+\title{The Failure of Variable Substitution\\ in Behavioral-Memory Agent Systems}
+
+\author{%
+\begin{tabular}{cc}
+Alex Postline\thanks{A Postline agent running on ChatGPT 5.2.} & Wei Dong \\
+\multicolumn{2}{c}{Ann Arbor Algorithms} \\
+\multicolumn{2}{c}{\texttt{wdong@aaalgo.com}}
+\end{tabular}
+}
+
+
+\date{
+\small\textsc{Postline Pattern Notes No.\ 1}\\
+\vspace{0.3em}
+\small \today
+}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Message-native agent systems increasingly use conversation history as both execution substrate and memory. A practical difficulty appears when runtime-generated metadata (e.g., message identifiers and reply links) must be inserted into messages to preserve causality, while the agent itself is not trusted to generate such identifiers.  
+This note analyzes why straightforward solutions fail, and proposes a minimal alternative: exposing runtime-provided constants directly in the environment stream visible to the agent. The approach preserves runtime authority while allowing the agent to learn protocol behavior through repeated observation of its own history.
+\end{abstract}
+
+\section{Introduction}
+
+Postline~\cite{aaa} is a message-native agent system in which humans, AI agents, runtimes, and external tools interact exclusively through an append-only email-like message stream. The message log serves simultaneously as communication protocol, execution trace, and long-term memory. Tools such as shells or compilers are represented as mailbox addresses, and all side effects are represented as messages exchanged through the system.
+
+A distinctive property of such systems is that the same message history used to record execution is later reused as context for future generation. We refer to this as \emph{behavioral memory}: memory that directly shapes subsequent behavior of the agent. In this setting, protocol design becomes not only an interface problem but also a learning problem.
+
+Behavior in large language model agents is not determined solely by initial instructions or training documents. Instead, behavior stabilizes through repeated exposure to patterns present in ongoing memory. Once a behavioral pattern appears consistently in memory, it tends to persist even after the original instruction that introduced it has faded from context. Conversely, behaviors that are not continuously reinforced gradually disappear: even if they are occasionally reintroduced, they fail to stabilize without recurring evidence in memory. As a result, long-term protocol reliability depends less on initial specification and more on what repeatedly appears in the execution history itself.
+
+Many practical systems require infrastructure-level transformations of agent outputs before they are executed or stored. Examples include insertion of unique identifiers, normalization of metadata, or routing annotations. While such transformations improve system reliability, they introduce a subtle failure mode: if the transformation is not visible in behavioral memory, the agent cannot observe how successful behavior was produced. Over time, protocol usage drifts because the mechanism that enabled correct execution is absent from the very history used for learning.
+
+In Postline, this problem appears when the runtime generates message identifiers and reply links needed to preserve causal structure. A naïve solution hides this process from the agent, resulting in unstable protocol acquisition. This paper analyzes why the obvious solutions fail and presents a minimal alternative: projecting runtime state directly into the message environment so that protocol-relevant information remains observable in memory.
+
+
+
+\section{The Failure of Variable Substitution}
+
+A natural response to runtime-generated identifiers is to introduce symbolic placeholders. The agent writes intent-level references, and the runtime resolves them into concrete values before execution or storage. For example:
+
+\begin{verbatim}
+From: ai@postline
+To: shell@postline
+In-Reply-To: $CURRENT_REQUEST
+Subject: fortune
+\end{verbatim}
+
+The runtime replaces the placeholder with a concrete identifier:
+
+\begin{verbatim}
+In-Reply-To: m-001042
+\end{verbatim}
+
+At first glance this appears ideal. The agent expresses intent, while the system guarantees correctness. This mirrors a deeply successful idea in traditional programming: variables abstract away concrete values, allowing programmers to reason at a higher level while runtimes perform substitution.
+
+However, the assumption underlying ordinary programming does not hold in message-native agent systems. In classical software, correctness depends only on execution; the program does not learn from its own compiled or normalized output. In contrast, Postline-style systems reuse execution history as behavioral memory. The agent observes past messages and adapts future behavior from those traces.
+
+When placeholders are resolved before being stored, the transformation itself disappears from memory. The agent repeatedly observes only finalized messages containing concrete identifiers and receives no evidence that these values were provided by the runtime. Over time, the learned pattern becomes inconsistent: the agent may infer that it is expected to invent such values directly, because that is all it sees in history.
+
+One might attempt to preserve placeholders in memory instead. This preserves author intent but removes concrete causal structure, making it difficult for the agent to reason over actual message relationships. The system therefore faces a dilemma:
+
+\begin{itemize}
+    \item Using concrete constants preserves causal reality but hides how the values were produced.
+    \item Using placeholders preserves generation intent but obscures realized execution.
+\end{itemize}
+
+This reveals a more general issue. In systems where logs become behavioral memory, abstractions that hide implementation details can become anti-patterns. The core failure is not syntactic but epistemic: the agent cannot learn behaviors whose enabling transformations are absent from the memory stream.
+
+The lesson is that protocol design for agent-oriented systems differs fundamentally from traditional software design. Abstractions that erase causal provenance during normalization may improve execution correctness while simultaneously degrading behavioral learnability.
+
+
+\section{Proposed Approach: State Projection into Behavioral Memory}
+
+Instead of relying on placeholders or hidden substitutions, we expose runtime-generated constants directly within the message environment visible to the agent.
+
+In Postline, messages are stored in an mbox-style stream separated by delimiter lines inserted by the runtime. These delimiter lines are not authored by the agent. We augment the delimiter
+with runtime state needed for the next generation step:
+\footnote{In standard mbox format, a message separator line is required only to begin with the token \texttt{From } at the start of a line. The remaining content is implementation-defined and may be used to carry additional runtime information.}
+
+\begin{verbatim}
+From POSTLINE NEXT_ID=m-001043
+CURRENT_REQUEST=m-001042 LAST_USER=m-001038
+\end{verbatim}
+
+
+The language model text generation follows immediately after the delimiter line. Because this line appears directly in the agent’s observable context, the agent can copy concrete values when constructing new messages. For example:
+
+\begin{verbatim}
+From: ai@postline
+To: shell@postline
+In-Reply-To: m-001042
+Subject: fortune
+\end{verbatim}
+
+This approach has several important properties:
+
+\begin{enumerate}
+    \item The runtime remains authoritative for identifier generation.
+    \item The agent observes concrete causal links in memory.
+    \item The protocol mechanism is repeatedly visible, enabling behavioral reinforcement.
+    \item No hidden rewriting or dual message representations are required.
+\end{enumerate}
+
+The solution aligns with how agents acquire behavior: through repeated exposure to structured examples rather than through invisible system logic. Conceptually, the delimiter line acts as a lightweight environmental state channel. The runtime publishes the current execution context, and the agent learns to operate by observing and copying from that environment.
+
+
+\section{Conclusion}
+
+Agent systems with behavioral memory reveal a general design pattern: runtime state that influences generation should remain visible within the same stream from which the agent learns.
+When execution history also serves as behavioral memory, hidden runtime transformations create a gap between behavior and observation, leading to unstable protocol acquisition.
+
+Postline addresses this by projecting runtime-generated constants directly into the agent’s visible environment. This preserves concrete causal structure while allowing protocol behavior to be reinforced through repeated observation. The approach maintains runtime authority, avoids additional protocol complexity, and keeps message history human-readable.
+
+Although demonstrated in an email-based architecture, the underlying principle applies broadly to event-sourced or conversation-native systems where memory and execution traces are unified. Making protocol-relevant transformations observable is a small design change, but it significantly improves long-term stability and evolvability of agent behavior.
+
+
+\nocite{*}
+\bibliographystyle{plain}
+\bibliography{aaa2}
+
+\end{document}
